@@ -1,0 +1,111 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "formula",
+	"patterns": [
+		{
+			"include": "#support"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#constants"
+		},
+		{
+			"include": "#variables"
+		}
+	],
+	"repository": {
+		"support": {
+			"patterns": [
+			{
+				"name": "support.class.formula",
+				"match": "(domain|partial model|model|transform|returns|extends|machine)"
+			}
+		  ]
+		},
+		"keywords": {
+			"patterns": [
+			{
+				"name": "keyword.function.formula",
+				"match": "(sum|count)"
+			},
+			{
+				"name": "keyword.control.formula",
+				"match": "(ensures|requires|conforms|includes|extends|returns|some|initially|next|property|boot)"
+			},
+			{
+				"name": "keyword.operator.formula",
+				"match": "(at(least|most)|\\sat\\s)"
+		    },
+			{
+				"match": "(\\-|\\+|\\*|%|\\b/\\b|\\b / \\b|\\b /\\b|\\b/ \\b)",
+				"name": "keyword.operator.arithmetic.formula"
+			},
+			{
+				"match": "(::=|:-|->|::|=>)",
+				"name": "keyword.operator.assignment.formula"
+			},
+			{
+				"match": "(==|!=)",
+				"name": "keyword.operator.comparison.formula"
+			},
+			{
+				"match": "(<=|>=|<>|<|>)",
+				"name": "keyword.operator.relational.formula"
+			},
+			{
+				"match": "(\\|>)",
+				"name": "keyword.operator.pipe.formula"
+			},
+			{
+				"match": "(new)",
+				"name": "keyword.operator.new"
+			}
+		  ]
+		},
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.line.double-slash.formula",
+					"begin": "//",
+					"end": "\n"
+				},
+				{
+					"name":"comment.block.formula",
+					"begin": "\/[*]",
+					"end": "[*](\/)"
+				}
+			]
+		},
+		"variables":{
+			"patterns": [
+				{
+					"name": "variable.language.formula",
+					"match": "(Integer|NegInteger|PosInteger|Natural|Real|String|Boolean)"
+				},
+				{
+					"name": "variable.parameter.formula",
+					"match": "([a-zA-Z]*(?=:))"
+				}
+			]
+		},
+		"constants": {
+			"patterns": [
+				{
+					"name": "constant.language.formula",
+					"match": "(TRUE|FALSE|NIL|ERROR)"
+				},	
+				{
+					"name": "constant.character.formula",
+					"match": "\\s(is|fun|no|inj|bij|of|sur|any|sub)\\s"
+				}
+			]
+		}	
+		
+	},
+	"scopeName": "source.formula"
+}

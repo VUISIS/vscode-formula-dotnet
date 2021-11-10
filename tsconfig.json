@@ -1,0 +1,18 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./src/client"
+    },
+    {
+      "path": "./src/test"
+    },
+    {
+      "path": "./src/extension"
+    },
+    {
+      "path": "./src/server"
+    }
+  ],
+	"exclude": ["node_modules", "out"]
+}
