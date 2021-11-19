@@ -9,9 +9,6 @@
     },
     {
       "path": "./src/extension"
-    },
-    {
-      "path": "./src/server"
     }
   ],
 	"exclude": ["node_modules", "out"]

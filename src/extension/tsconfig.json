@@ -8,7 +8,7 @@
 		"sourceMap": true,
 		"strict": false,
     "rootDir": ".",
-    "outDir": "../../out/extension",
+    "outDir": "../../out/extension"
   },
   "references": [],
 	"exclude": ["test", "node_modules"]

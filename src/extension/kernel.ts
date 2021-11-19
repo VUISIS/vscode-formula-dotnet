@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as path from 'path';
-import { FormulaCommands } from './commandInterface';
+import { FormulaCommands } from './util';
 import { EventEmitter } from 'events';
 
 var isWin = process.platform === "win32";
@@ -88,32 +88,44 @@ export class FormulaKernel {
                 });
                 return;
             }
-            if(isLinux || isMac)
+            let pathCL = clPath['commandLinePath'];
+            pathCL = pathCL.replace(/['"]+/g, '');
+            if(isLinux)
             {
-                if(clPath['commandLinePath'].endsWith('CommandLine'))
-                    this._formulaRuntime = cp.spawn(path.join(clPath['commandLinePath']));
+                if(pathCL.endsWith('CommandLine'))
+                    this._formulaRuntime = cp.spawn(pathCL);
                 else
-                    this._formulaRuntime = cp.spawn(path.join(clPath['commandLinePath'],"CommandLine"));
+                    this._formulaRuntime = cp.spawn(path.join(pathCL,"CommandLine"));
             }
             else if(isWin)
             {
-                if(clPath['commandLinePath'].endsWith('CommandLine.exe'))
-                    this._formulaRuntime = cp.spawn(path.join(clPath['commandLinePath']));
+                if(pathCL.endsWith('CommandLine.exe'))
+                    this._formulaRuntime = cp.spawn(pathCL);
                 else
-                    this._formulaRuntime = cp.spawn(path.join(clPath['commandLinePath'],"CommandLine.exe"));
+                    this._formulaRuntime = cp.spawn(path.join(pathCL, "CommandLine.exe"));
+            }
+            else if(isMac)
+            {
+                if(pathCL.endsWith('CommandLine.dll'))
+                    this._formulaRuntime = cp.spawn("dotnet", [pathCL]);
+                else
+                    this._formulaRuntime = cp.spawn("dotnet", [path.join(pathCL, "CommandLine.dll")]);
             }
 
             this._formulaRuntime.stdout.on('data', (data) => {
+                this._outputBuffer += data;
                 this.getData(data.toString());
+            });
+
+            this._formulaRuntime.stderr.on('data', (data) => {
+                this._outputBuffer += "Error: ";
+                this._outputBuffer += data;
             });
         }
     }
 
     private async getData(data): Promise<void>
-    {
-        this._outputBuffer += data;
-        await new Promise(res => setTimeout(res, 500));
-		
+    {		
         if(this.checkEndOfOutput()) {
             this._outputBuffer = this._outputBuffer.replace(/[[\]>]/g,"");
             this._outputBuffer = this._outputBuffer.replace(/^[\s]/g,"");

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ClassMapping } from './util';
 
 export class FormulaHoverProvider implements vscode.HoverProvider
 {
@@ -6,6 +7,14 @@ export class FormulaHoverProvider implements vscode.HoverProvider
     {			
         const range = doc.getWordRangeAtPosition(pos);
         const word = doc.getText(range);
-        return new vscode.Hover(word);
+        
+        if(range !== undefined)
+        {
+            return new vscode.Hover(word);
+        }
+        else
+        {
+            return new vscode.Hover("");
+        }    
     }
 }

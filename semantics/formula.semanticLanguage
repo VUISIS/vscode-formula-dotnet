@@ -1,6 +1,0 @@
-Available token types:
-    [domain]  [model]   [partial model] [transform] [extends] [conforms] [requires] 
-    [ensures] [returns] [system]        [atleast]   [new]     [NIL]      [Real]
-
-An error case:
-    [ERROR]
