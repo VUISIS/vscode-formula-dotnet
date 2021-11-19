@@ -2,25 +2,20 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 export function updateDiagnostics(collection: vscode.DiagnosticCollection) : void {
-	let document = vscode.window.activeTextEditor.document;
-	if (document && path.basename(document.uri.fsPath).endsWith('.4ml')) {
-		let cols = [];
-        let cGC = checkGenericCase(document);
-        if(cGC.length > 0)
-        {
-            for(let i = 0;i < cGC.length;++i)
-            {
-                cols.push(cGC[i]);
-            }
-        }
+    if(vscode.window.activeTextEditor)
+    {
+        let document = vscode.window.activeTextEditor.document;
+        if (document && path.basename(document.uri.fsPath).endsWith('.4ml')) {
+            let cGC = checkGenericCase(document);
 
-		collection.set(document.uri, cols);
-	} else {
-		collection.clear();
-	}
+            collection.set(document.uri, cGC);
+        } else {
+            collection.clear();
+        }
+    }
 }
 
-function checkGenericCase(document: vscode.TextDocument) : Array<{}>
+function checkGenericCase(document: vscode.TextDocument) : vscode.Diagnostic[]
 {
     let cols = [];
     for(let i = 0;i < document.lineCount;++i)
@@ -47,9 +42,8 @@ function checkGenericCase(document: vscode.TextDocument) : Array<{}>
             else
             {
                 cols.push({
-                    code: '',
-                    message: "Statements end in a '.' or ','",
                     range: new vscode.Range(line.range.end, line.range.end.translate(0,1)),
+                    message: "Statements end in a '.' or ','",
                     severity: vscode.DiagnosticSeverity.Error
                 });
             }
@@ -58,21 +52,20 @@ function checkGenericCase(document: vscode.TextDocument) : Array<{}>
     return cols;
 }
 
-function checkForDefinition(line: vscode.TextLine, nextLine: vscode.TextLine) : boolean
+export function checkForDefinition(line: vscode.TextLine, nextLine: vscode.TextLine) : boolean
 {
     let re = /(requires|ensures|initially|next|domain|model|transform|returns|machine)/g;
     let re2 = /({|returns)/g;
-    console.log(nextLine.text);
     return re.test(line.text) && re2.test(nextLine.text);
 }
 
-function checkForSingleLineComments(text: string) : boolean
+export function checkForSingleLineComments(text: string) : boolean
 {
     let re = /(^ *)(\/.*)/g;
     return re.test(text);
 }
 
-function checkForClosingBracket(text: string) : boolean
+export function checkForClosingBracket(text: string) : boolean
 {
     if(text.includes("}") &&
        text.length < 2)
