@@ -3,6 +3,7 @@
   "displayName": "formula-dotnet",
   "description": "Formula Language Extension",
   "publisher": "vanderbilt",
+  "repository": "https://github.com/VUISIS/vscode-formula-dotnet",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.57.0"
