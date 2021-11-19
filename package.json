@@ -113,8 +113,5 @@
     "vscode-test": "^1.5.2",
     "webpack": "^5.38.1",
     "webpack-cli": "^4.7.0"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^6.1.3"
   }
 }
