@@ -6,7 +6,7 @@ declare class TextEncoder {
 	encode(data: string): Uint8Array;
 }
 
-export const FormulaCommands = [
+export const FORMULA_COMMANDS = [
     "exit", "help", "set", "del", "list", "load", "unload", "tunload",
     "reload", "save", "print", "render", "det", "verbose", "wait", "watch",
     "types", "query", "solve", "truth", "proof", "apply", "stats", "generate",
@@ -15,6 +15,6 @@ export const FormulaCommands = [
     "tul", "v", "typ", "qr", "tr", "ap", "st", "gn", "ex", "cr", "ch", "int"
 ];
 
-export const ClassMapping = {
-    "Data Constructor": "/(new )/g",
+export const CLASS_MAPPING = {
+    "dataConstructor": "/(new )/g"
 };

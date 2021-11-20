@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { ClassMapping } from './util';
 
 export class FormulaHoverProvider implements vscode.HoverProvider
 {

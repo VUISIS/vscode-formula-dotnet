@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as path from 'path';
-import { FormulaCommands } from './util';
+import { FORMULA_COMMANDS } from './util';
 import { EventEmitter } from 'events';
 
 var isWin = process.platform === "win32";
@@ -93,23 +93,35 @@ export class FormulaKernel {
             if(isLinux)
             {
                 if(pathCL.endsWith('CommandLine'))
+                {
                     this._formulaRuntime = cp.spawn(pathCL);
+                }
                 else
+                {
                     this._formulaRuntime = cp.spawn(path.join(pathCL,"CommandLine"));
+                }
             }
             else if(isWin)
             {
                 if(pathCL.endsWith('CommandLine.exe'))
+                {
                     this._formulaRuntime = cp.spawn(pathCL);
+                }
                 else
+                {
                     this._formulaRuntime = cp.spawn(path.join(pathCL, "CommandLine.exe"));
+                }
             }
             else if(isMac)
             {
                 if(pathCL.endsWith('CommandLine.dll'))
+                {
                     this._formulaRuntime = cp.spawn("dotnet", [pathCL]);
+                }    
                 else
+                {
                     this._formulaRuntime = cp.spawn("dotnet", [path.join(pathCL, "CommandLine.dll")]);
+                }
             }
 
             this._formulaRuntime.stdout.on('data', (data) => {
@@ -154,7 +166,7 @@ export class FormulaKernel {
             if(!re.test(msg))
             {
                 let regx = "^(";
-                regx = regx + FormulaCommands.join("|") + ")";
+                regx = regx + FORMULA_COMMANDS.join("|") + ")";
                 let re2 = new RegExp(regx, 'gm');
                 let matches = msg.match(re2);
                 if(matches && matches.length > 1)

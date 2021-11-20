@@ -78,7 +78,7 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile && node out/test/checkNoTestProvider.js",
+    "vscode:prepublish": "npm run compile && node ./out/test/checkNoTestProvider.js",
     "compile": "npm run compile:extension && npm run compile:client",
     "compile:extension": "tsc -b",
     "compile:server": "tsc -b",
