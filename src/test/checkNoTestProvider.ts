@@ -10,7 +10,7 @@ import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { EOL } from 'os';
 
 const rootDir = path.resolve(__dirname, '..', '..');
-const packageJson = require('../../package.json');
+const packageJson = require('../../../package.json');
 
 class DetectedError extends Error {
   constructor(message: string, public readonly fix: () => void) {

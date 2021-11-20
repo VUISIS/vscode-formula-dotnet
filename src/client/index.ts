@@ -2,10 +2,10 @@ import { render } from './render';
 import errorOverlay from 'vscode-notebook-error-overlay';
 import type { ActivationFunction } from 'vscode-notebook-renderer';
 
-declare const __webpack_relative_entrypoint_to_root__: string;
+declare let webPackVariableEntryPoint: string;
 declare const scriptUrl: string;
 
-__webpack_public_path__ = new URL(scriptUrl.replace(/[^/]+$/, '') + __webpack_relative_entrypoint_to_root__).toString();
+webPackVariableEntryPoint = new URL(scriptUrl.replace(/[^/]+$/, '') + webPackVariableEntryPoint).toString();
 
 export const activate: ActivationFunction = context => {
   return {

@@ -78,18 +78,18 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile && node ./out/test/checkNoTestProvider.js",
+    "vscode:prepublish": "npm run compile && node ./out/test/test/checkNoTestProvider.js",
     "compile": "npm run compile:extension && npm run compile:client",
     "compile:extension": "tsc -b",
     "compile:server": "tsc -b",
-    "compile:client": "webpack --mode production",
+    "compile:client": "tsc -b",
     "lint": "eslint src --ext ts",
     "watch": "concurrently -r \"npm:watch:*\"",
     "watch:extension": "tsc -b --watch",
     "watch:client": "webpack --mode development --watch",
     "dev": "concurrently -r npm:watch:extension npm:watch:client",
     "pretest": "npm run compile && npm run lint",
-    "test": "node ./out/test/runTest.js"
+    "test": "node ./out/test/test/runTest.js"
   },
   "devDependencies": {
     "@types/glob": "^7.1.3",

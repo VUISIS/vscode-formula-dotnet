@@ -63,7 +63,7 @@ module.exports = (env, argv) => ({
       },
     }),
     new DefinePlugin({
-      __webpack_relative_entrypoint_to_root__: JSON.stringify(
+      webpackRelativeEntryPoint: JSON.stringify(
         path.posix.relative(path.posix.dirname(`/${outputFilename}`), '/'),
       ),
       scriptUrl: 'import.meta.url',
