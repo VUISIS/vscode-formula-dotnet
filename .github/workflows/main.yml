@@ -23,10 +23,10 @@ jobs:
           
       - name: Install Dependencies
         run: npm install
-        working-directory: ${{github.workspace}}
+        working-directory: ${{github.workspace}}/../
         
       - name: Run Tests Headless
         uses: GabrielBB/xvfb-action@v1.0
         with:
           run: npm test
-          working-directory: ${{github.workspace}}
+          working-directory: ${{github.workspace}}/../
