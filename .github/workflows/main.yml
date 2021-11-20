@@ -21,10 +21,12 @@ jobs:
         with:
           node-version: 12
           
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm install
+        working-directory: ${{github.workspace}}
         
-      - name: Run headless
+      - name: Run Tests Headless
         uses: GabrielBB/xvfb-action@v1.0
         with:
           run: npm test
+          working-directory: ${{github.workspace}}/../
