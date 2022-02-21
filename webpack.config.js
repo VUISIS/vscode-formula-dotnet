@@ -8,9 +8,9 @@ const devServerPort = 8111;
 module.exports = (env, argv) => ({
   mode: argv.mode,
   devtool: argv.mode === 'production' ? false : 'inline-source-map',
-  entry: './src/client/index.ts',
+  entry: './src/extension/extension.ts',
   output: {
-    path: path.join(__dirname, 'out', 'client'),
+    path: path.join(__dirname, 'out', 'extension'),
     filename: outputFilename,
     publicPath: '',
     libraryTarget: 'module',
@@ -27,7 +27,7 @@ module.exports = (env, argv) => ({
         test: /\.tsx?$/,
         loader: 'ts-loader',
         options: {
-          configFile: 'src/client/tsconfig.json',
+          configFile: 'src/extension/tsconfig.json',
           transpileOnly: true,
           compilerOptions: {
             noEmit: false,
@@ -59,7 +59,7 @@ module.exports = (env, argv) => ({
   plugins: [
     new ForkTsCheckerWebpackPlugin({
       typescript: {
-        tsconfig: 'src/client/tsconfig.json',
+        tsconfig: 'src/extension/tsconfig.json',
       },
     }),
     new DefinePlugin({

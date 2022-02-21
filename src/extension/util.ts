@@ -1,11 +1,3 @@
-declare class TextDecoder {
-	decode(data: Uint8Array): string;
-}
-
-declare class TextEncoder {
-	encode(data: string): Uint8Array;
-}
-
 export const FORMULA_COMMANDS = [
     "exit", "help", "set", "del", "list", "load", "unload", "tunload",
     "reload", "save", "print", "render", "det", "verbose", "wait", "watch",

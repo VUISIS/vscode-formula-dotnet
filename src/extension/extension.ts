@@ -1,16 +1,10 @@
 import * as vscode from 'vscode';
 import { ExtensionContext } from 'vscode';
-import { FormulaSerializer } from './serializer';
-import { FormulaKernel } from './kernel';
 import { FormulaHoverProvider } from './languageProvider';
 import { updateDiagnostics } from './diagnostics';
 
 export function activate(context: ExtensionContext) 
 {
-	context.subscriptions.push(
-		vscode.workspace.registerNotebookSerializer('formula-notebook-renderer', new FormulaSerializer(), { transientOutputs: true }),
-		new FormulaKernel()
-	);
 
 	const formulaDiagnostics = vscode.languages.createDiagnosticCollection("domain");
 	context.subscriptions.push(formulaDiagnostics);
