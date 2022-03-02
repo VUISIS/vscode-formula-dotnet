@@ -1,46 +1,46 @@
+import { kernelInfoRequest } from './messaging';
 import * as vscode from 'vscode';
-import { ExtensionContext } from 'vscode';
-import { FormulaHoverProvider } from './languageProvider';
-import { updateDiagnostics } from './diagnostics';
+import { IKernelSpec, KernelProvider } from './kernelProvider';
+import { FormulaNotebookKernel, FormulaNotebookSerializer } from './notebookProvider';
 
-export function activate(context: ExtensionContext) 
-{
-
-	const formulaDiagnostics = vscode.languages.createDiagnosticCollection("domain");
-	context.subscriptions.push(formulaDiagnostics);
-
-	context.subscriptions.push(vscode.languages.registerHoverProvider('formula', new FormulaHoverProvider()));
-
-	const provider = vscode.languages.registerCompletionItemProvider(
-		[{ scheme: 'file', language: 'formula' }],
-		{
-			provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext)
-			{
-				const linePrefix = document.lineAt(position).text.substr(0, position.character);
-				if (!linePrefix.endsWith(')') || !linePrefix.endsWith('))')) 
-				{
-					return undefined;
-				}
-				return [
-					new vscode.CompletionItem('.', vscode.CompletionItemKind.Property)
-				];
-			}
-		},
-		')'
-	);
-
-	const collection = vscode.languages.createDiagnosticCollection('period');
-	if (vscode.window.activeTextEditor) {
-		updateDiagnostics(collection);
-	}
-	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(event => {
-		updateDiagnostics(collection);
+export async function activate(context: vscode.ExtensionContext) {
+  /*const val = await vscode.window.showInputBox({ignoreFocusOut: false,
+                              password: false,
+                              placeHolder: "BAM",
+                              prompt: "GIB ME",
+                              title: "MY INPUT",
+                              value: "NOTHING",
+                              valueSelection: undefined});*/
+  const ch = vscode.window.createOutputChannel("Formula");
+  const kp = new KernelProvider();
+  const kernels = kp.getFormulaKernel();
+  let flag = false;
+  let ks : IKernelSpec;
+  for(const k of kernels)
+  {
+    if(k.displayName === "Formula")
+    {
+      ks = k;
+      flag = true;
+      break;
+    }
+  }
+  if(!flag)
+  {
+    ch.appendLine("Formula kernel not found.");
+    vscode.window.showErrorMessage("Formula kernel not found.");
+  }
+  
+  context.subscriptions.push(new FormulaNotebookKernel(kp, ks));
+	context.subscriptions.push(vscode.workspace.registerNotebookSerializer('formula-notebook', new FormulaNotebookSerializer(), {
+		transientOutputs: true,
+		transientCellMetadata: {
+			inputCollapsed: true,
+			outputCollapsed: true,
+		}
 	}));
-
-	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
-		updateDiagnostics(collection);
-	}));
-	
-	context.subscriptions.push(provider);
 }
 
+export function deactivate() {
+
+}

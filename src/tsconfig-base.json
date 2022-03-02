@@ -8,6 +8,6 @@
     "types": ["node"],
     "moduleResolution": "node",
     "sourceMap": true,
-    "strict": true   
+    "strict": false   
   }
 }

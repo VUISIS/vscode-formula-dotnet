@@ -2,6 +2,9 @@
   "files": [],
   "references": [
     {
+      "path": "./src/test"
+    },
+    {
       "path": "./src/extension"
     }
   ],
