@@ -14,7 +14,8 @@
   ],
   "activationEvents": [
     "onLanguage:formula-lang",
-    "onNotebook:formula-notebook"
+    "onNotebook:formula-notebook",
+    "onCommand:kernel.restart"
   ],
   "main": "./out/extension/extension.js",
   "browser": "./out/extension/extension.web.js",
@@ -40,6 +41,12 @@
           }
         ]
       }
+    ],
+    "commands": [
+        {
+            "command": "kernel.restart",
+            "title": "Restart Kernel"
+        }
     ]
   },
   "scripts": {

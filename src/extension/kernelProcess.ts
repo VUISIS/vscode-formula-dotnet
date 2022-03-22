@@ -33,6 +33,6 @@ export class KernelProcess implements Disposable {
 
   public dispose() {
     this.killed = true;
-    this.cp.kill();
+    this.cp.kill('SIGINT');
   }
 }

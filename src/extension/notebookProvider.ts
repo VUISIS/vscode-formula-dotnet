@@ -19,20 +19,15 @@ export class FormulaNotebookKernel {
 		this._kernelSpec = kernelSpec;
 	}
 
-	public async create()
+	public restart()
 	{
-		this._controller = vscode.notebooks.createNotebookController(
-			'formulaKernel',
-			'formula-notebook',
-			'Formula',
-		);
-		this._controller.supportedLanguages = ['formula'];
-		this._controller.description = 'Formula';
-		this._controller.executeHandler = this._executeAll.bind(this);
-		this._controller.interruptHandler = this._interruptHandler.bind(this);
+		this._runningKernel.dispose();
+		this.launchKernelAndConnectSubject();
+	}
 
+	private async launchKernelAndConnectSubject()
+	{
 		this._runningKernel = await this._kernelProvider.launchKernel(this._kernelSpec);
-
 		this._runningKernel.connection.msgSubject.pipe(
 		).subscribe({
 			next: (msg) => {
@@ -80,9 +75,24 @@ export class FormulaNotebookKernel {
 		});
 	}
 
+	public async create()
+	{
+		this._controller = vscode.notebooks.createNotebookController(
+			'formulaKernel',
+			'formula-notebook',
+			'Formula',
+		);
+		this._controller.supportedLanguages = ['formula'];
+		this._controller.description = 'Formula';
+		this._controller.executeHandler = this._executeAll.bind(this);
+		this._controller.interruptHandler = this._interruptHandler.bind(this);
+		this.launchKernelAndConnectSubject();
+	}
+
 	dispose(): void 
 	{
 		this._controller.dispose();
+		this._runningKernel.dispose();
 	}
 
 	private async _executeAll(cells: vscode.NotebookCell[]): Promise<void> {
