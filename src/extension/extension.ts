@@ -3,7 +3,6 @@ import { IKernelSpec, KernelProvider } from './kernelProvider';
 import { FormulaNotebookKernel, FormulaNotebookSerializer } from './notebookProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
-  const ch = vscode.window.createOutputChannel("Formula");
   const kp = new KernelProvider();
   const kernels = kp.getFormulaKernel();
   let flag = false;
@@ -19,7 +18,6 @@ export async function activate(context: vscode.ExtensionContext) {
   }
   if(!flag)
   {
-    ch.appendLine("Formula kernel not found.");
     vscode.window.showErrorMessage("Formula kernel not found.");
   }
   

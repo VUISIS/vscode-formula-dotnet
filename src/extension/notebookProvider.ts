@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { IKernelSpec, IRunningKernel, KernelProvider } from './kernelProvider';
 import { DisplayData, executeRequest, inputReply, StreamOutput, UpdateDisplayData } from './messaging';
 
-const ch = vscode.window.createOutputChannel("notebookProvider");
 export class FormulaNotebookKernel {
 
 	private _controller: vscode.NotebookController;
@@ -36,7 +35,6 @@ export class FormulaNotebookKernel {
 		this._runningKernel.connection.msgSubject.pipe(
 		).subscribe({
 			next: (msg) => {
-				ch.appendLine(msg.header.msg_type);
 				if(msg.header.msg_type === 'stream')
 				{
 					this._execution.appendOutput([
@@ -92,10 +90,9 @@ export class FormulaNotebookKernel {
 	}
 
 	private async _interruptHandler(cells: vscode.NotebookCell[]): Promise<void> {
-		var err = new Error("Command interrupted.");
 		this._execution.appendOutput([
 			new vscode.NotebookCellOutput([
-				vscode.NotebookCellOutputItem.error(err)
+				vscode.NotebookCellOutputItem.text("Command interrupted.")
 			])
 		]);
 		this._execution.end(false, Date.now());
@@ -105,15 +102,13 @@ export class FormulaNotebookKernel {
         this._execution = this._controller.createNotebookCellExecution(cell);
 		this._execution.start(Date.now());
 		this._execution.clearOutput(cell);
-		ch.clear();
 
 		var line_count = cell.document.lineCount;
 		if(line_count > 1)
 		{
-			var err = new Error("Only one command at a time.");
 			this._execution.appendOutput([
 				new vscode.NotebookCellOutput([
-					vscode.NotebookCellOutputItem.error(err)
+					vscode.NotebookCellOutputItem.text("Only one command at a time.")
 				])
 			]);
 			this._execution.end(false, Date.now());
@@ -121,11 +116,20 @@ export class FormulaNotebookKernel {
 		}
 
 		var cmd = cell.document.getText();
-		if(cmd.includes('load'))
+		if(cmd.startsWith("load ") || cmd.startsWith("l "))
 		{
 			try
 			{
-				var filePath = cmd.replace('load ','');
+				var filePath = "";
+				if(cmd.startsWith("load "))
+				{
+					filePath = cmd.replace("load ", "");
+				}
+				else if(cmd.startsWith("l "))
+				{
+					filePath = cmd.replace("l ", "");
+				}
+
 				const uri = vscode.Uri.parse(filePath);
 				await vscode.workspace.fs.stat(uri);
 				const doc = await vscode.workspace.openTextDocument(uri);
@@ -135,7 +139,7 @@ export class FormulaNotebookKernel {
 			{
 				this._execution.appendOutput([
 					new vscode.NotebookCellOutput([
-						vscode.NotebookCellOutputItem.error(error)
+						vscode.NotebookCellOutputItem.text("Invalid file path.")
 					])
 				]);
 				this._execution.end(false, Date.now());

@@ -10,10 +10,7 @@ import { promiseMap } from './util';
 import { join } from 'path';
 import { tmpdir } from 'os'; 
 import { JupyterMessageHeader } from './messaging';
-import * as vscode from 'vscode';
 import { Disposable } from 'vscode';
-
-const ch = vscode.window.createOutputChannel("Connection");
 
 interface ISockets {
     key: string;
@@ -65,7 +62,6 @@ export class Connection implements Disposable {
     private iopubProm : Promise<void>;
     private stdinProm : Promise<void>;
     private shellProm : Promise<void>;
-    private msgEvent : EventEmitter = new EventEmitter();
     
     public static create() {
         const routingId = crypto.randomBytes(8).toString('hex');
@@ -161,8 +157,6 @@ function createConnectionFile(sockets: ISockets, host = '127.0.0.1'): string {
       signature_scheme: sockets.signatureScheme,
       key: sockets.key,
     });
-
-    ch.appendLine(sockets.iopub.port.toString());
   
     const fname = join(tmpdir(), `formula-${crypto.randomBytes(8).toString('hex')}.json`);
     fs.writeFileSync(fname, contents);
