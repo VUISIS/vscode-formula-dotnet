@@ -29,6 +29,15 @@ export type InputReply = JupyterMessage<
   'stdin'
 >;
 
+export type InputRequest = JupyterMessage<
+  'input_request',
+  {
+    prompt: string,
+    password: boolean
+  },
+  'stdin'
+>;
+
 export type ExecuteRequest = JupyterMessage<
   'execute_request',
   {
@@ -70,6 +79,16 @@ export type DisplayData = JupyterMessage<
   'iopub'
 >;
 
+export type UpdateDisplayData = JupyterMessage<
+  'update_display_data',
+  {
+    data: { [mimeType: string]: string };
+    metadata: { [key: string]: unknown };
+    transient: { [key: string]: unknown };
+  },
+  'iopub'
+>;
+
 export type StreamOutput = JupyterMessage<
   'stream',
   {
@@ -89,15 +108,26 @@ export type ExecutionError = JupyterMessage<
   'iopub'
 >;
 
+export type Status = JupyterMessage<
+  'status',
+  {
+    execution_state: string;
+  },
+  'iopub'
+>;
+
 export type TypedJupyerMessage =
   | ExecuteRequest
   | ExecuteReply
   | ExecuteResult
   | KernelInfoRequest
   | InputReply
+  | InputRequest
   | DisplayData
   | ExecutionError
-  | StreamOutput;
+  | StreamOutput
+  | Status
+  | UpdateDisplayData;
 
 export const isMessageType = <T extends MessageType>(
   messageType: T,

@@ -27,6 +27,7 @@ const makeConfig = (argv, { entry, out, target, library = 'commonjs' }) => ({
         'split2': 'commonjs split2',
         'module': 'commonjs module',
         'zeromq': 'commonjs zeromq',
+        'stream': 'commonjs stream',
         '@nteract/messaging/lib/wire-protocol': 'commonjs @nteract/messaging/lib/wire-protocol'
     },
     resolve: {
@@ -73,7 +74,7 @@ const makeConfig = (argv, { entry, out, target, library = 'commonjs' }) => ({
         }),
         new DefinePlugin({
             __webpack_relative_entrypoint_to_root__: JSON.stringify(
-                path.posix.relative(path.posix.dirname(`/index.js`), '/'),
+                path.posix.relative(path.posix.dirname('/extension.js'), '/'),
             ),
             scriptUrl: 'import.meta.url',
         })

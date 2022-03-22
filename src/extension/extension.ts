@@ -1,16 +1,8 @@
-import { kernelInfoRequest } from './messaging';
 import * as vscode from 'vscode';
 import { IKernelSpec, KernelProvider } from './kernelProvider';
 import { FormulaNotebookKernel, FormulaNotebookSerializer } from './notebookProvider';
 
 export async function activate(context: vscode.ExtensionContext) {
-  /*const val = await vscode.window.showInputBox({ignoreFocusOut: false,
-                              password: false,
-                              placeHolder: "BAM",
-                              prompt: "GIB ME",
-                              title: "MY INPUT",
-                              value: "NOTHING",
-                              valueSelection: undefined});*/
   const ch = vscode.window.createOutputChannel("Formula");
   const kp = new KernelProvider();
   const kernels = kp.getFormulaKernel();
@@ -31,7 +23,10 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.showErrorMessage("Formula kernel not found.");
   }
   
-  context.subscriptions.push(new FormulaNotebookKernel(kp, ks));
+  var knp = new FormulaNotebookKernel(kp, ks);
+  await knp.create();
+
+  context.subscriptions.push(knp);
 	context.subscriptions.push(vscode.workspace.registerNotebookSerializer('formula-notebook', new FormulaNotebookSerializer(), {
 		transientOutputs: true,
 		transientCellMetadata: {

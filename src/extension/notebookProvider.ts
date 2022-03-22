@@ -1,20 +1,26 @@
-import { takeWhile } from 'rxjs';
-import { reduce } from 'rxjs/operators';
 import * as vscode from 'vscode';
 import { IKernelSpec, IRunningKernel, KernelProvider } from './kernelProvider';
-import { executeRequest, isMessageType } from './messaging';
+import { DisplayData, executeRequest, inputReply, StreamOutput, UpdateDisplayData } from './messaging';
+
+const ch = vscode.window.createOutputChannel("notebookProvider");
 export class FormulaNotebookKernel {
 
-	private readonly _controller: vscode.NotebookController;
+	private _controller: vscode.NotebookController;
 	private readonly _kernelProvider: KernelProvider;
 	private readonly _kernelSpec: IKernelSpec;
-	private readonly _runningKernel: IRunningKernel;
+	private _runningKernel: IRunningKernel;
+	private _execution: vscode.NotebookCellExecution;
 
 	constructor(
 		kernelProvider: KernelProvider,
 		kernelSpec: IKernelSpec
 	) {
+		this._kernelProvider = kernelProvider;
+		this._kernelSpec = kernelSpec;
+	}
 
+	public async create()
+	{
 		this._controller = vscode.notebooks.createNotebookController(
 			'formulaKernel',
 			'formula-notebook',
@@ -23,11 +29,56 @@ export class FormulaNotebookKernel {
 		this._controller.supportedLanguages = ['formula'];
 		this._controller.description = 'Formula';
 		this._controller.executeHandler = this._executeAll.bind(this);
+		this._controller.interruptHandler = this._interruptHandler.bind(this);
 
-		this._kernelProvider = kernelProvider;
-		this._kernelSpec = kernelSpec;
-
-		this._runningKernel = this._kernelProvider.launchKernel(this._kernelSpec);
+		this._runningKernel = await this._kernelProvider.launchKernel(this._kernelSpec);
+	
+		this._runningKernel.connection.msgSubject.pipe(
+		).subscribe({
+			next: (msg) => {
+				ch.appendLine(msg.header.msg_type);
+				if(msg.header.msg_type === 'stream')
+				{
+					this._execution.appendOutput([
+						new vscode.NotebookCellOutput([
+							vscode.NotebookCellOutputItem.text((msg as StreamOutput).content.text)
+						])
+					]);
+				}
+				else if(msg.header.msg_type === 'display_data')
+				{
+					this._execution.appendOutput([
+						new vscode.NotebookCellOutput([
+							vscode.NotebookCellOutputItem.text((msg as DisplayData).content.data['text/plain'])
+						])
+					]);
+				}
+				else if(msg.header.msg_type === 'update_display_data')
+				{
+					this._execution.replaceOutput([
+						new vscode.NotebookCellOutput([
+							vscode.NotebookCellOutputItem.text((msg as UpdateDisplayData).content.data['text/plain'])
+						])
+					]);
+				}
+				else if(msg.header.msg_type === 'input_request')
+				{
+					vscode.window.showInputBox({ignoreFocusOut: true,
+						password: false,
+						placeHolder: "Selection",
+						prompt: "Input Selection",
+						title: "Selection",
+						value: "0",
+						valueSelection: undefined}).then(async (val) => {
+							await this._runningKernel.connection.sendRaw(inputReply(val));
+					});
+				}
+				else if(msg.header.msg_type === 'execute_reply')
+				{
+					this._execution.end(true, Date.now());
+				}
+			}
+		});
 	}
 
 	dispose(): void {
@@ -40,43 +91,69 @@ export class FormulaNotebookKernel {
 		}
 	}
 
+	private async _interruptHandler(cells: vscode.NotebookCell[]): Promise<void> {
+		var err = new Error("Command interrupted.");
+		this._execution.appendOutput([
+			new vscode.NotebookCellOutput([
+				vscode.NotebookCellOutputItem.error(err)
+			])
+		]);
+		this._execution.end(false, Date.now());
+	}
+
 	private async _doExecuteCell(cell: vscode.NotebookCell): Promise<void> {
-        const execution = this._controller.createNotebookCellExecution(cell);
-		execution.start(Date.now());
-		console.log(cell.document.getText());
+        this._execution = this._controller.createNotebookCellExecution(cell);
+		this._execution.start(Date.now());
+		this._execution.clearOutput(cell);
+		ch.clear();
+
+		var line_count = cell.document.lineCount;
+		if(line_count > 1)
+		{
+			var err = new Error("Only one command at a time.");
+			this._execution.appendOutput([
+				new vscode.NotebookCellOutput([
+					vscode.NotebookCellOutputItem.error(err)
+				])
+			]);
+			this._execution.end(false, Date.now());
+			return;
+		}
+
+		var cmd = cell.document.getText();
+		if(cmd.includes('load'))
+		{
+			try
+			{
+				var filePath = cmd.replace('load ','');
+				const uri = vscode.Uri.parse(filePath);
+				await vscode.workspace.fs.stat(uri);
+				const doc = await vscode.workspace.openTextDocument(uri);
+				await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside, false);
+			}
+			catch (error)
+			{
+				this._execution.appendOutput([
+					new vscode.NotebookCellOutput([
+						vscode.NotebookCellOutputItem.error(error)
+					])
+				]);
+				this._execution.end(false, Date.now());
+				return;
+			}
+		}
 
 		try {
-			const output = this._runningKernel.connection.sendAndReceive(executeRequest(cell.document.getText())).pipe(
-				takeWhile(msg => msg.header.msg_type !== 'execute_reply', true)
-			);
-			
-			const kernelOutputs = output
-			.pipe(
-				reduce((acc: vscode.NotebookCellOutput[], msg): vscode.NotebookCellOutput[] => {
-				if (isMessageType('execute_result', msg)) {
-					return [
-					...acc,
-						{
-							items: [vscode.NotebookCellOutputItem.text(msg.content.data["plain/text"])]
-						}
-					];
-				}
-
-				return acc;
-				}, []),
-			);
-				
+			await this._runningKernel.connection.sendRaw(executeRequest(cmd));
 		} 
 		catch (error) 
 		{
-			execution.appendOutput([
+			this._execution.appendOutput([
 				new vscode.NotebookCellOutput([
 					vscode.NotebookCellOutputItem.error(error)
 				])
 			]);
 		} 
-
-		execution.end(true, Date.now());
 	}
 }
 

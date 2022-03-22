@@ -92,7 +92,7 @@ export class KernelProvider
         return specs;
       }
 
-      public launchKernel(spec: IKernelSpec): IRunningKernel {
+      public async launchKernel(spec: IKernelSpec): Promise<IRunningKernel> {
         const connection = Connection.create();
         const process = new KernelProcess(
           spawn(
@@ -101,14 +101,13 @@ export class KernelProvider
             { stdio: 'pipe' },
           ),
         );
-    
         return {
           connection,
           process,
           dispose: () => {
             connection.dispose();
             process.dispose();
-          },
+          }
         };
       }
 }

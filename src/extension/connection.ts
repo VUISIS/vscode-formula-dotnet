@@ -2,9 +2,9 @@ import * as zmq from 'zeromq';
 import { MessageType as OriginalMessageType } from '@nteract/messaging';
 import { TypedJupyerMessage } from './messaging';
 import * as wireProtocol from '@nteract/messaging/lib/wire-protocol';
+import { Subject } from 'rxjs';
 import * as fs from 'fs';
-import { Subject, Observable, from } from 'rxjs';
-import { ignoreElements, concatWith, filter } from 'rxjs/operators';
+import { EventEmitter } from 'stream';
 import * as crypto from 'crypto';
 import { promiseMap } from './util';
 import { join } from 'path';
@@ -60,25 +60,28 @@ const toRawMessage = (rawMessage: TypedJupyerMessage): wireProtocol.RawJupyterMe
 };
 
 export class Connection implements Disposable {
-    public readonly messages = new Subject<TypedJupyerMessage>();
+    public msgSubject : Subject<TypedJupyerMessage> = new Subject<TypedJupyerMessage>();
+    private flag = true;
+    private iopubProm : Promise<void>;
+    private stdinProm : Promise<void>;
+    private shellProm : Promise<void>;
+    private msgEvent : EventEmitter = new EventEmitter();
     
     public static create() {
-        //const routingId = crypto.randomBytes(8).toString('hex');
+        const routingId = crypto.randomBytes(8).toString('hex');
         const sockets: ISockets = promiseMap({
             key: crypto.randomBytes(32).toString('hex'),
             signatureScheme: 'hmac-sha256',
-            control: createSocket(new zmq.Dealer()),
+            control: createSocket(new zmq.Dealer({routingId: routingId})),
             heartbeat: createSocket(new zmq.Push()),
             iopub: createSocket(new zmq.Subscriber()),
-            shell: createSocket(new zmq.Dealer()),
-            stdin: createSocket(new zmq.Dealer()),
+            shell: createSocket(new zmq.Dealer({routingId: routingId})),
+            stdin: createSocket(new zmq.Dealer({routingId: routingId})),
         });
+
+        sockets["iopub"].socket.subscribe();
         
         const cnx = new Connection(sockets, createConnectionFile(sockets));
-        cnx.processSocketMessages('control', sockets.control.socket);
-        cnx.processSocketMessages('iopub', sockets.iopub.socket);
-        cnx.processSocketMessages('shell', sockets.shell.socket);
-        cnx.processSocketMessages('stdin', sockets.stdin.socket);
         return cnx;
     }
     
@@ -86,36 +89,57 @@ export class Connection implements Disposable {
         private readonly sockets: ISockets,
         public readonly connectionFile: string,
     ) {
+        this.iopubProm = this.iopubReceive();
+        this.shellProm = this.shellReceive();
+        this.stdinProm = this.stdinReceive();
     }
     
-    private async processSocketMessages(
-        channel: ReceiveChannel,
-        socket: zmq.Dealer | zmq.Subscriber,
-    ) {
-        const msg = await socket.receive();
-        ch.appendLine(msg.toString());
-        const message = wireProtocol.decode(msg, this.sockets.key, this.sockets.signatureScheme);
-        this.messages.next(fromRawMessage(channel, message));
-    }
-    
-    public sendRaw(message: TypedJupyerMessage) {
+    public async sendRaw(message: TypedJupyerMessage) {
         const data = wireProtocol.encode(
         toRawMessage(message),
         this.sockets.key,
         this.sockets.signatureScheme,
         );
-        return this.sockets[message.channel as SendChannel].socket.send(data);
+        return await this.sockets[message.channel as SendChannel].socket.send(data);
     }
 
-    public sendAndReceive(message: TypedJupyerMessage): Observable<TypedJupyerMessage> {
-        return from(this.sendRaw(message)).pipe(
-          ignoreElements(),
-          concatWith(this.messages),
-          filter(msg => msg.parent_header?.msg_id === message.header.msg_id),
-        );
+    public async iopubReceive() : Promise<void> {
+        while(this.flag)
+        {
+            const msg = await this.sockets["iopub"].socket.receive();
+            const message = wireProtocol.decode(msg, this.sockets.key, this.sockets.signatureScheme);
+            this.msgSubject.next(fromRawMessage("iopub", message));
+        }
+        return;
+    }
+
+    public async stdinReceive() : Promise<void> {
+        while(this.flag)
+        {
+            const msg = await this.sockets["stdin"].socket.receive();
+            const message = wireProtocol.decode(msg, this.sockets.key, this.sockets.signatureScheme);
+            this.msgSubject.next(fromRawMessage("stdin", message));
+        }
+        return;
+    }
+
+    public async shellReceive() : Promise<void> {
+        while(this.flag)
+        {
+            const msg = await this.sockets["shell"].socket.receive();
+            const message = wireProtocol.decode(msg, this.sockets.key, this.sockets.signatureScheme);
+            this.msgSubject.next(fromRawMessage("shell", message));
+        }
+        return;
     }
     
     public dispose() {
+        this.flag = false;
+
+        this.iopubProm.then((v) => { });
+        this.stdinProm.then((v) => { });
+        this.shellProm.then((v) => { });
+
         this.sockets.control.socket.close();
         this.sockets.heartbeat.socket.close();
         this.sockets.iopub.socket.close();
@@ -138,7 +162,7 @@ function createConnectionFile(sockets: ISockets, host = '127.0.0.1'): string {
       key: sockets.key,
     });
 
-    ch.appendLine(sockets.control.port.toString());
+    ch.appendLine(sockets.iopub.port.toString());
   
     const fname = join(tmpdir(), `formula-${crypto.randomBytes(8).toString('hex')}.json`);
     fs.writeFileSync(fname, contents);
