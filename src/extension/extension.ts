@@ -19,6 +19,7 @@ export async function activate(context: vscode.ExtensionContext) {
   if(!flag)
   {
     vscode.window.showErrorMessage("Formula kernel not found.");
+    return;
   }
   
   var knp = new FormulaNotebookKernel(kp, ks);

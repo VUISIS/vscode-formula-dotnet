@@ -13,7 +13,8 @@ export class FormulaNotebookKernel {
 	constructor(
 		kernelProvider: KernelProvider,
 		kernelSpec: IKernelSpec
-	) {
+	) 
+	{
 		this._kernelProvider = kernelProvider;
 		this._kernelSpec = kernelSpec;
 	}
@@ -31,7 +32,7 @@ export class FormulaNotebookKernel {
 		this._controller.interruptHandler = this._interruptHandler.bind(this);
 
 		this._runningKernel = await this._kernelProvider.launchKernel(this._kernelSpec);
-	
+
 		this._runningKernel.connection.msgSubject.pipe(
 		).subscribe({
 			next: (msg) => {
@@ -79,12 +80,14 @@ export class FormulaNotebookKernel {
 		});
 	}
 
-	dispose(): void {
+	dispose(): void 
+	{
 		this._controller.dispose();
 	}
 
 	private async _executeAll(cells: vscode.NotebookCell[]): Promise<void> {
-        for (const cell of cells) {
+        for (const cell of cells) 
+		{
 			await this._doExecuteCell(cell);
 		}
 	}
@@ -103,8 +106,7 @@ export class FormulaNotebookKernel {
 		this._execution.start(Date.now());
 		this._execution.clearOutput(cell);
 
-		var line_count = cell.document.lineCount;
-		if(line_count > 1)
+		if(cell.document.lineCount > 1)
 		{
 			this._execution.appendOutput([
 				new vscode.NotebookCellOutput([
@@ -130,6 +132,11 @@ export class FormulaNotebookKernel {
 					filePath = cmd.replace("l ", "");
 				}
 
+				if(process.platform === "win32")
+				{
+					filePath = "file:///" + filePath;
+				}
+				
 				const uri = vscode.Uri.parse(filePath);
 				await vscode.workspace.fs.stat(uri);
 				const doc = await vscode.workspace.openTextDocument(uri);
@@ -147,7 +154,8 @@ export class FormulaNotebookKernel {
 			}
 		}
 
-		try {
+		try 
+		{
 			await this._runningKernel.connection.sendRaw(executeRequest(cmd));
 		} 
 		catch (error) 
