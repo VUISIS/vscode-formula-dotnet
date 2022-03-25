@@ -5,7 +5,9 @@
 ### Running this Sample
 
  1. `code-insiders formula`: Open the folder in VS Code Insiders
- 1. Hit `F5` to build+debug
+ 2. npm install
+ 3. npm run compile
+ 4. Hit `F5` to build+debug
 
 ### Dependencies
 
