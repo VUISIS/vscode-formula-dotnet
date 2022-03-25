@@ -4,7 +4,7 @@
 
 import { ChildProcessWithoutNullStreams } from 'child_process';
 import { ReplaySubject, Subject } from 'rxjs';
-import * as split from 'split2';
+import split from 'split2';
 import { Disposable } from 'vscode';
 
 export class KernelProcess implements Disposable {

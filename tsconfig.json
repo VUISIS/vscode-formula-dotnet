@@ -2,10 +2,10 @@
   "files": [],
   "references": [
     {
-      "path": "./src/test"
+      "path": "./extension"
     },
     {
-      "path": "./src/extension"
+      "path": "./server"
     }
   ],
 	"exclude": ["node_modules", "out"]

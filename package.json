@@ -13,21 +13,16 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:formula-lang",
-    "onNotebook:formula-notebook",
-    "onCommand:kernel.restart"
+    "onLanguage:formula",
+    "onNotebook:formula-notebook"
   ],
   "main": "./out/extension/extension.js",
-  "browser": "./out/extension/extension.web.js",
   "contributes": {
     "languages": [
       {
-        "id": "formula-lang",
-        "aliases": [
-          "Formula"
-        ],
-        "filenamePatterns": [
-          "*.4ml"
+        "id": "formula",
+        "extensions": [
+          ".4ml"
         ]
       }
     ],
@@ -43,19 +38,33 @@
       }
     ],
     "commands": [
+      {
+        "command": "kernel.restart",
+        "title": "Restart Kernel"
+      }
+    ],
+    "menus": {
+      "notebook/toolbar": [
         {
-            "command": "kernel.restart",
-            "title": "Restart Kernel"
+          "command": "kernel.restart",
+          "group": "navigation"
         }
-    ]
+      ],
+      "commandPalette": [
+        {
+          "command": "kernel.restart",
+          "when": "false"
+        }
+      ]
+    }
   },
+  "semanticHighlighting": true,
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "webpack --mode production",
+    "compile": "webpack --mode development",
     "lint": "eslint src --ext ts",
     "dev": "",
-    "pretest": "webpack --mode development && npm run lint",
-    "test": "node ./out/test/runTest.js"
+    "pretest": "webpack --mode development && npm run lint"
   },
   "devDependencies": {
     "@nteract/messaging": "^7.0.20",
@@ -69,20 +78,23 @@
     "@typescript-eslint/parser": "^5.9.1",
     "@vscode/test-electron": "^2.0.3",
     "concurrently": "^7.0.0",
-    "css-loader": "^4.2.0",
     "eslint": "^8.6.0",
     "file-loader": "^6.2.0",
-    "fork-ts-checker-webpack-plugin": "^5.0.14",
     "glob": "^7.2.0",
     "mocha": "^9.1.3",
     "rxjs": "^7.5.4",
     "split2": "^4.1.0",
-    "style-loader": "^1.2.1",
     "ts-loader": "^9.2.6",
     "typescript": "^4.5.4",
     "util": "^0.12.4",
     "webpack": "^5.69.1",
     "webpack-cli": "^4.9.2",
+    "webpack-node-externals": "^3.0.0",
     "zeromq": "^6.0.0-beta.6"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.0.0",
+    "tree-sitter-formula": "file:../tree-sitter-formula",
+    "web-tree-sitter": "0.20.5"
   }
 }

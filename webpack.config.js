@@ -1,6 +1,5 @@
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const { DefinePlugin } = require('webpack');
 const path = require('path');
+const nodeExternals = require('webpack-node-externals');
 
 const makeConfig = (argv, { entry, out, target, library = 'commonjs' }) => ({
     mode: argv.mode,
@@ -14,77 +13,24 @@ const makeConfig = (argv, { entry, out, target, library = 'commonjs' }) => ({
         libraryTarget: library,
         chunkFormat: library,
     },
-    externals: {
-        vscode: 'commonjs vscode',
-        'fs': 'commonjs fs',
-        'os': 'commonjs os',
-        'crypto': 'commonjs crypto',
-        'rimraf': 'commonjs rimraf',
-        'mkdirp': 'commonjs mkdirp',
-        'path': 'commonjs path',
-        'rxjs': 'commonjs rxjs',
-        'child_process': 'commonjs child_process',
-        'split2': 'commonjs split2',
-        'module': 'commonjs module',
-        'zeromq': 'commonjs zeromq',
-        'stream': 'commonjs stream',
-        '@nteract/messaging/lib/wire-protocol': 'commonjs @nteract/messaging/lib/wire-protocol'
+    externals: [nodeExternals(), 'vscode'],
+    externalsPresets: {
+        node: true 
     },
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
-        fallback: { "util": require.resolve("util/") }
-    },
-    experiments: {
-        outputModule: true,
+        extensions: ['.ts', '.js']
     },
     module: {
-        rules: [
-            {
-                test: /\.tsx?$/,
-                loader: 'ts-loader',
-                options: {
-                    configFile: path.join(path.dirname(entry), 'tsconfig.json'),
-                    transpileOnly: true,
-                    compilerOptions: {
-                        noEmit: false,
-                        module: 'esnext'
-                    },
-                },
-            },
-            {
-                test: /\.css$/,
-                use: [
-                    'style-loader',
-                    {
-                        loader: 'css-loader',
-                        options: {
-                            importLoaders: 1,
-                            modules: true,
-                        },
-                    },
-                ],
-            }
-        ],
-    },
-    plugins: [
-        new ForkTsCheckerWebpackPlugin({
-            typescript: {
-                configFile: path.join(path.dirname(entry), 'tsconfig.json'),
-            },
-        }),
-        new DefinePlugin({
-            __webpack_relative_entrypoint_to_root__: JSON.stringify(
-                path.posix.relative(path.posix.dirname('/extension.js'), '/'),
-            ),
-            scriptUrl: 'import.meta.url',
-        })
-    ],
-    infrastructureLogging: {
-        level: "log", 
-    },
+        rules: [{
+            test: /\.ts$/,
+            exclude: /node_modules/,
+            use: [{
+                loader: 'ts-loader'
+            }]
+        }]
+    }
 });
 
 module.exports = (env, argv) => [
-    makeConfig(argv, { entry: './src/extension/extension.ts', out: './out/extension/extension.js', target: 'node' }),
-    makeConfig(argv, { entry: './src/extension/extension.ts', out: './out/extension/extension.web.js', target: 'webworker' }),
+    makeConfig(argv, { entry: './extension/extension.ts', out: './out/extension/extension.js', target: 'node' }),
 ];

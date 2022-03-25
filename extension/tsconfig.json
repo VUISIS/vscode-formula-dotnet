@@ -1,15 +1,14 @@
 {
-  "extends": "../tsconfig-base.json",
   "compilerOptions": {
     "rootDir": ".",
-    "outDir": "../../out/extension",
+    "outDir": "../out/extension",
     "target": "es2019",
 		"lib": ["ES2019"],
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"sourceMap": true,
-		"strict": false
+		"strict": false,
+    "esModuleInterop": true
   },
-  "references": [],
-	"exclude": ["test", "node_modules"]
+  "references": []
 }
