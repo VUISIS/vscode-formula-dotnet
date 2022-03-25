@@ -4,21 +4,12 @@ import Parser, { Language } from 'web-tree-sitter';
 import Grammar from './grammar';
 import { IKernelSpec, KernelProvider } from './kernelProvider';
 import { FormulaNotebookKernel, FormulaNotebookSerializer } from './notebookProvider';
-import DiagnosticProvider from './providers/diagnosticProvider';
 import SemanticTokensProvider from './providers/semanticTokensProvider';
 import TypeHoverProvider from './providers/typeHoverProvider';
 
 var _fnk : FormulaNotebookKernel = null;
 
-let _formula : Language = null;
-let _parser : Parser = null;
-
 export async function activate(context: vscode.ExtensionContext) {
-  await Parser.init();
-  _parser = new Parser();
-  _formula = await Parser.Language.load(path.join(__dirname,'../../node_modules/tree-sitter-formula/tree-sitter-formula.wasm'));
-  _parser.setLanguage(_formula);
-
   const kp = new KernelProvider();
   const kernels = kp.getFormulaKernel();
   let flag = false;
