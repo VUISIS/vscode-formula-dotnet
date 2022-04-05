@@ -1,13 +1,27 @@
 import * as vscode from 'vscode';
-import Grammar from '../grammar';
+import Grammar, { QUERY_TYPE } from '../grammar';
+import * as path from 'path';
+import * as fs from 'fs';
+import { QueryCapture } from 'web-tree-sitter';
 
 export default class TypeHoverProvider implements vscode.HoverProvider
 {
-    grammar: Grammar;
+    private grammar: Grammar;
+    private highlightFile: string | undefined = undefined;
 
     constructor(grammar: Grammar)
     {
         this.grammar = grammar;
+
+        this.highlightFile = "";
+
+        const data = fs.readFileSync(path.join(__dirname, "../../queries/highlight.scm"), "utf-8");
+        data.split(/\r?\n/).forEach(line => {
+            if(!line.includes("<!--"))
+            {
+                this.highlightFile += line + '\n';
+            }
+        });
     }
 
     async provideHover(
@@ -15,39 +29,35 @@ export default class TypeHoverProvider implements vscode.HoverProvider
         pos: vscode.Position,
         token: vscode.CancellationToken): Promise<vscode.Hover>
     {
-        let hover : vscode.Hover = undefined;
-        let type : string | undefined = undefined;
-        const tree = this.grammar.getTree(vscode.window.activeTextEditor.document);
-        const terms = this.grammar.parse(tree);
-        for(var t of terms) {
-            if(t.range.isSingleLine)
-            {
-                if(t.range.contains(pos))
-                {
-                    if(t.term === 'unnbody')
-                    {
-                        type = 'type';
-                    }
-                    else if(t.term === 'id' &&
-                            t.parentType === 'func_term')
-                    {
-                        type = 'function';
-                    }
-                    else if(t.term === 'mod_ref')
-                    {
-                        type = 'domain reference';
-                    }
-                    else
-                    {
-                        type = t.term;
-                    }
-                }   
-            }
-        };
-        if(type)
+        let hover: vscode.Hover | undefined = undefined;
+        if(this.highlightFile)
         {
-            hover = new vscode.Hover(type, doc.getWordRangeAtPosition(pos));
+            const caps = this.grammar.query(this.highlightFile, doc, QUERY_TYPE.CAPTURE) as QueryCapture[];
+            for(let cap of caps)
+            {
+                let range = new vscode.Range(new vscode.Position(cap.node.startPosition.row,cap.node.startPosition.column), 
+                                                        new vscode.Position(cap.node.endPosition.row,cap.node.endPosition.column));
+                if(range.start.line === range.end.line &&
+                   range.contains(pos))
+                {
+                    switch(cap.name)
+                    {
+                        case "keyword":
+                            hover = new vscode.Hover("keyword", doc.getWordRangeAtPosition(pos));
+                            break;
+                        case "comment":
+                            hover = new vscode.Hover("comment", doc.getWordRangeAtPosition(pos));
+                            break;
+                        case "number":
+                            hover = new vscode.Hover("number", doc.getWordRangeAtPosition(pos));
+                            break;           
+                        default:
+                            break;
+                    }
+                }
+            }
         }
+
         return hover;
     }
 }

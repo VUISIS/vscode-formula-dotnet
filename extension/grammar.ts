@@ -2,13 +2,19 @@ import * as vscode from 'vscode';
 import Parser, { Tree } from "web-tree-sitter";
 import * as path from 'path';
 
+export enum QUERY_TYPE {
+    MATCH,
+    CAPTURE
+}
+
 export default class Grammar 
 {
-    readonly lang: string;
-    parser: Parser;
-    tstree: Map<vscode.Uri, Tree> = new Map<vscode.Uri, Tree>();
-    parserPromise = Parser.init();
-    includedTypes : Set<string> = new Set();
+    private readonly lang: string;
+    private parser: Parser;
+    private tstree: Map<vscode.Uri, Tree> = new Map<vscode.Uri, Tree>();
+    private parserPromise = Parser.init();
+    private includedTypes : Set<string> = new Set();
+    private formula: Parser.Language;
 
     constructor(lang: string) {
         this.lang = lang;
@@ -55,8 +61,8 @@ export default class Grammar
         await this.parserPromise;
         this.parser = new Parser();
         let langFile = path.join(__dirname, "../../parser/tree-sitter-formula.wasm");
-        const langObj = await Parser.Language.load(langFile);
-        this.parser.setLanguage(langObj);
+        this.formula = await Parser.Language.load(langFile);
+        this.parser.setLanguage(this.formula);
     }
 
     public tree(doc: vscode.TextDocument) {
@@ -114,30 +120,38 @@ export default class Grammar
 		return {row: pos.line, column: pos.character};
 	}
 
+    query(query: string, doc: vscode.TextDocument, type: QUERY_TYPE) : (Parser.QueryMatch[] | Parser.QueryCapture[])
+    {
+        const pq = this.formula.query(query);
+        let matches: (Parser.QueryMatch[] | Parser.QueryCapture[]);
+        if(type === QUERY_TYPE.MATCH)
+        {
+            matches = pq.matches(this.getTree(doc).rootNode);
+        }
+        else if (type === QUERY_TYPE.CAPTURE)
+        {
+            matches = pq.captures(this.getTree(doc).rootNode);
+        }
+        return matches;
+    }
+
     parse(tree: Parser.Tree) 
     {
-        let terms: { term: string; parentType: string, range: vscode.Range }[] = [];
+        let terms: { term: string, parentTerm: any, range: vscode.Range, text: string }[] = [];
         if(tree)
         {
             let cursor = tree.walk();
             let reachedRoot = false;
             while(reachedRoot === false)
             {   
-                let type = cursor.currentNode().type;
-                //console.log("--------------------------");
-                //console.log(type);
                 let node = cursor.currentNode();
-                let name = node.text;
-                //console.log(name);
-                //console.log("--------------------------");
+                let type = node.type;
+                let txt = node.text;
 
                 let range = new vscode.Range(new vscode.Position(node.startPosition.row, node.startPosition.column),
-                                                new vscode.Position(node.endPosition.row, node.endPosition.column));
+                                            new vscode.Position(node.endPosition.row, node.endPosition.column));
 
-                if(this.includedTypes.has(type))
-                {
-                    terms.push({ term: type, parentType: node.parent.type, range: range});
-                }
+                terms.push({ term: type, parentTerm: node.parent, range: range, text: txt});
                 
                 if(cursor.gotoFirstChild())
                 {
