@@ -4,7 +4,6 @@ import { TypedJupyerMessage } from './messaging';
 import * as wireProtocol from '@nteract/messaging/lib/wire-protocol';
 import { Subject } from 'rxjs';
 import * as fs from 'fs';
-import { EventEmitter } from 'stream';
 import * as crypto from 'crypto';
 import { promiseMap } from './util';
 import { join } from 'path';

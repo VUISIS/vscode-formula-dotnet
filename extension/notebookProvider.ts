@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { IKernelSpec, IRunningKernel, KernelProvider } from './kernelProvider';
 import { DisplayData, executeRequest, inputReply, StreamOutput, UpdateDisplayData } from './messaging';
+import * as path from 'path';
 
 export class FormulaNotebookKernel {
 
@@ -146,8 +147,22 @@ export class FormulaNotebookKernel {
 				{
 					filePath = "file:///" + filePath;
 				}
-				
-				const uri = vscode.Uri.parse(filePath);
+
+				var folder = path.dirname(cell.notebook.uri.path);
+
+				cmd = cmd + " " + folder;
+
+				var uri : vscode.Uri | undefined = undefined;
+				if(path.isAbsolute(filePath))
+				{
+					uri = vscode.Uri.parse(filePath);
+				}
+				else
+				{
+					filePath = path.join(folder, filePath);
+					uri = vscode.Uri.parse(filePath);
+				}
+
 				await vscode.workspace.fs.stat(uri);
 				const doc = await vscode.workspace.openTextDocument(uri);
 				await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside, false);

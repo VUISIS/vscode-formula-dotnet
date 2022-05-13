@@ -4,7 +4,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { QueryCapture } from 'web-tree-sitter';
 
-const ch = vscode.window.createOutputChannel("semanticTokensProvider");
 export default class SemanticTokensProvider implements vscode.DocumentSemanticTokensProvider
 {
     private grammar: Grammar;
@@ -43,7 +42,6 @@ export default class SemanticTokensProvider implements vscode.DocumentSemanticTo
 
     public async provideDocumentSemanticTokens(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.SemanticTokens> 
     {
-        ch.clear();
         this.tokensBuilder = new vscode.SemanticTokensBuilder(this.legend);
         
         if(this.highlightFile)
@@ -57,7 +55,6 @@ export default class SemanticTokensProvider implements vscode.DocumentSemanticTo
                                                         new vscode.Position(cap.node.endPosition.row,cap.node.endPosition.column));
                 if(range.start.line === range.end.line)
                 {
-                    ch.appendLine(name);
                     switch(name)
                     {
                         case "keyword":
