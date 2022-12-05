@@ -41,10 +41,18 @@
       {
         "command": "kernel.restart",
         "title": "Restart Kernel"
+      },
+      {
+        "command": "save.solution",
+        "title": "Save Solution"
       }
     ],
     "menus": {
       "notebook/toolbar": [
+        {
+          "command": "save.solution",
+          "group": "navigation"
+        },
         {
           "command": "kernel.restart",
           "group": "navigation"
@@ -53,6 +61,10 @@
       "commandPalette": [
         {
           "command": "kernel.restart",
+          "when": "false"
+        },
+        {
+          "command": "save.solution",
           "when": "false"
         }
       ]

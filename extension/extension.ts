@@ -38,6 +38,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	    _fnk.restart();
 	}));
 
+  context.subscriptions.push(vscode.commands.registerCommand('save.solution', function () {
+  }));
+
   const grammar = new Grammar('formula');
   await grammar.init();
 

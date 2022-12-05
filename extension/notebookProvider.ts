@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { IKernelSpec, IRunningKernel, KernelProvider } from './kernelProvider';
 import { DisplayData, executeRequest, inputReply, StreamOutput, UpdateDisplayData } from './messaging';
 import * as path from 'path';
+import { Buffer } from 'buffer';
 
 export class FormulaNotebookKernel {
 
@@ -10,6 +11,9 @@ export class FormulaNotebookKernel {
 	private readonly _kernelSpec: IKernelSpec;
 	private _runningKernel: IRunningKernel;
 	private _execution: vscode.NotebookCellExecution;
+	private _currentSolution: string[];
+	private _loaded4ML: vscode.Uri = null;
+	private _partialModelDomain: string = "Mapping";
 
 	constructor(
 		kernelProvider: KernelProvider,
@@ -24,6 +28,25 @@ export class FormulaNotebookKernel {
 	{
 		this._runningKernel.dispose();
 		this.launchKernelAndConnectSubject();
+	}
+
+	public async saveSolution()
+	{
+		if(this._currentSolution.length > 0 &&
+			this._loaded4ML !== null)
+		{
+			var file = await vscode.workspace.fs.readFile(this._loaded4ML);
+			var txt = Buffer.from(file).toString('utf-8');
+			txt += "\n";
+			txt += "model m" + this._currentSolution[this._currentSolution.length - 1] + " of " + this._partialModelDomain;
+			txt += " {";
+			txt += "\n";
+			this._currentSolution.forEach(element => {
+				txt += "\t" + element;
+			});
+			txt += "}";
+			await vscode.workspace.fs.writeFile(this._loaded4ML, Buffer.from(txt));
+		}
 	}
 
 	private async launchKernelAndConnectSubject()
@@ -42,9 +65,19 @@ export class FormulaNotebookKernel {
 				}
 				else if(msg.header.msg_type === 'display_data')
 				{
+					var msgTxt = (msg as DisplayData).content.data['text/plain'];
+					var ctnsSol = msgTxt.includes("Solution number");
+					if(ctnsSol)
+					{
+						this._currentSolution = msgTxt.split("\n");
+						const re = /\d+/;
+						re.exec(this._currentSolution[0]);
+						this._currentSolution.shift();
+						this._currentSolution += re[0];
+					}
 					this._execution.appendOutput([
 						new vscode.NotebookCellOutput([
-							vscode.NotebookCellOutputItem.text((msg as DisplayData).content.data['text/plain'])
+							vscode.NotebookCellOutputItem.text(msgTxt)
 						])
 					]);
 				}
@@ -164,6 +197,7 @@ export class FormulaNotebookKernel {
 				}
 
 				await vscode.workspace.fs.stat(uri);
+				this._loaded4ML = uri;
 				const doc = await vscode.workspace.openTextDocument(uri);
 				await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside, false);
 			}
