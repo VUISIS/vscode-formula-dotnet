@@ -34,11 +34,13 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(_fnk);
 	context.subscriptions.push(vscode.workspace.registerNotebookSerializer('formula-notebook', new FormulaNotebookSerializer(), {	}));
 
-  context.subscriptions.push(vscode.commands.registerCommand('kernel.restart', function () {
+  context.subscriptions.push(vscode.commands.registerCommand('kernel.restart', () => {
 	    _fnk.restart();
 	}));
 
-  context.subscriptions.push(vscode.commands.registerCommand('save.solution', function () {
+  context.subscriptions.push(vscode.commands.registerCommand('save.solution', async () => {
+    await vscode.window.showInformationMessage("CALLBACK FIRED");  
+    await _fnk.saveCallback();
   }));
 
   const grammar = new Grammar('formula');

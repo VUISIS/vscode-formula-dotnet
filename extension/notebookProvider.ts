@@ -11,9 +11,9 @@ export class FormulaNotebookKernel {
 	private readonly _kernelSpec: IKernelSpec;
 	private _runningKernel: IRunningKernel;
 	private _execution: vscode.NotebookCellExecution;
-	private _currentSolution: string[];
+	private _solutions: Object = new Object();
 	private _loaded4ML: vscode.Uri = null;
-	private _partialModelDomain: string = "Mapping";
+	private _4mlText: string = null;
 
 	constructor(
 		kernelProvider: KernelProvider,
@@ -30,23 +30,67 @@ export class FormulaNotebookKernel {
 		this.launchKernelAndConnectSubject();
 	}
 
-	public async saveSolution()
+	public async saveCallback()
 	{
-		if(this._currentSolution.length > 0 &&
-			this._loaded4ML !== null)
+		var val = await vscode.window.showInputBox({ignoreFocusOut: true,
+			password: false,
+			placeHolder: "Solution ID",
+			prompt: "Solution ID",
+			title: "Solution ID",
+			value: "0",
+			valueSelection: undefined});
+		
+		if(val in this._solutions)
 		{
-			var file = await vscode.workspace.fs.readFile(this._loaded4ML);
-			var txt = Buffer.from(file).toString('utf-8');
+			await this._runningKernel.connection.sendRaw(executeRequest("extract " + val + " 1 save_solution"));
+			return;
+		}
+		await vscode.window.showErrorMessage("Solution ID not in task list.");
+		return;
+	}
+
+	public async saveSolution(data: string[], id: string)
+	{
+		if(this._4mlText.includes("model " + this._solutions[id]["PartialModel"] + this._solutions[id]["SolNum"] + " of " + this._solutions[id]["Domain"]))
+		{
+			await vscode.window.showErrorMessage("Solution already saved to " + this._loaded4ML.fsPath + ".");
+			return;
+		}
+
+		if(this._loaded4ML !== null)
+		{
+			var txt = Buffer.from(this._4mlText).toString('utf-8');
 			txt += "\n";
-			txt += "model m" + this._currentSolution[this._currentSolution.length - 1] + " of " + this._partialModelDomain;
+			txt += "model " + this._solutions[id]["PartialModel"] + this._solutions[id]["SolNum"] + " of " + this._solutions[id]["Domain"];
 			txt += " {";
 			txt += "\n";
-			this._currentSolution.forEach(element => {
+			data.forEach(element => {
 				txt += "\t" + element;
+				txt += "\n";
 			});
 			txt += "}";
 			await vscode.workspace.fs.writeFile(this._loaded4ML, Buffer.from(txt));
+			vscode.window.showInformationMessage("Solution successfully saved to " + this._loaded4ML.fsPath + ".");
+			this._4mlText = (await vscode.workspace.openTextDocument(this._loaded4ML)).getText();
+			return;
 		}
+		await vscode.window.showErrorMessage("No 4ml file loaded.");
+		return;
+	}
+
+	private storeSolution(cmd: string, out:string, metaCode: string)
+	{
+		const matches = /solve\s([\w\d]+)\s(\d+)/.exec((metaCode));
+		var obj = new Object();
+		obj["PartialModel"] = matches[1];
+		obj["SolNum"] = matches[2];
+		const re = new RegExp('partial\smodel\s' + matches[1] + '\sof\s([\w\d]+)');
+		const m4ml = re.exec(this._4mlText);
+		obj["Domain"] = m4ml[1];
+
+		var m = /Started\solve\stask\swith\sId\s(\d+)/.exec(out);
+		obj["ID"] = m[1];
+		this._solutions[m[1]] = obj;
 	}
 
 	private async launchKernelAndConnectSubject()
@@ -65,27 +109,43 @@ export class FormulaNotebookKernel {
 				}
 				else if(msg.header.msg_type === 'display_data')
 				{
-					var msgTxt = (msg as DisplayData).content.data['text/plain'];
-					var ctnsSol = msgTxt.includes("Solution number");
-					if(ctnsSol)
+					var cont = (msg as DisplayData).content;
+					var metaCode = cont.metadata["Code"];
+					var cmd = (metaCode as string).split(" ")[0];
+					var out = cont.data['text/plain'];
+					if(cmd[0] === "solve" || cmd[0] === "sl")
 					{
-						this._currentSolution = msgTxt.split("\n");
-						const re = /\d+/;
-						re.exec(this._currentSolution[0]);
-						this._currentSolution.shift();
-						this._currentSolution += re[0];
+						this.storeSolution(cmd[0], out, (metaCode as string));
 					}
+					else if(cmd[0] === "extract" && cmd[3] === "save_solution")
+					{
+						this.saveSolution(out.split("\n"), cmd[1]);
+					}
+
 					this._execution.appendOutput([
 						new vscode.NotebookCellOutput([
-							vscode.NotebookCellOutputItem.text(msgTxt)
+							vscode.NotebookCellOutputItem.text(out)
 						])
 					]);
 				}
 				else if(msg.header.msg_type === 'update_display_data')
 				{
+					var cont = (msg as DisplayData).content;
+					var metaCode = cont.metadata["Code"];
+					var cmd = (metaCode as string).split(" ")[0];
+					var out = cont.data['text/plain'];
+					if(cmd[0] === "solve" || cmd[0] === "sl")
+					{
+						this.storeSolution(cmd[0], out, (metaCode as string));
+					}
+					else if(cmd[0] === "extract" && cmd[3] === "save_solution")
+					{
+						this.saveSolution(out.split("\n"), cmd[1]);
+					}
+
 					this._execution.replaceOutput([
 						new vscode.NotebookCellOutput([
-							vscode.NotebookCellOutputItem.text((msg as UpdateDisplayData).content.data['text/plain'])
+							vscode.NotebookCellOutputItem.text(out)
 						])
 					]);
 				}
@@ -199,6 +259,7 @@ export class FormulaNotebookKernel {
 				await vscode.workspace.fs.stat(uri);
 				this._loaded4ML = uri;
 				const doc = await vscode.workspace.openTextDocument(uri);
+				this._4mlText = doc.getText();
 				await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside, false);
 			}
 			catch (error)

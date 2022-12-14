@@ -48,11 +48,13 @@
       }
     ],
     "menus": {
-      "notebook/toolbar": [
+      "notebook/cell/title": [
         {
           "command": "save.solution",
           "group": "navigation"
-        },
+        }
+      ],
+      "notebook/toolbar": [
         {
           "command": "kernel.restart",
           "group": "navigation"
