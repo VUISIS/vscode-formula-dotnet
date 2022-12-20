@@ -14,7 +14,9 @@
   ],
   "activationEvents": [
     "onLanguage:formula",
-    "onNotebook:formula-notebook"
+    "onNotebook:formula-notebook",
+    "onCommand:extension.solution",
+    "onCommand:extension.restart"
   ],
   "main": "./out/extension/extension.js",
   "contributes": {
@@ -39,35 +41,23 @@
     ],
     "commands": [
       {
-        "command": "kernel.restart",
+        "command": "extension.restart",
         "title": "Restart Kernel"
       },
       {
-        "command": "save.solution",
+        "command": "extension.solution",
         "title": "Save Solution"
       }
     ],
     "menus": {
-      "notebook/cell/title": [
-        {
-          "command": "save.solution",
-          "group": "navigation"
-        }
-      ],
       "notebook/toolbar": [
         {
-          "command": "kernel.restart",
+          "command": "extension.restart",
           "group": "navigation"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "kernel.restart",
-          "when": "false"
         },
         {
-          "command": "save.solution",
-          "when": "false"
+          "command": "extension.solution",
+          "group": "navigation"
         }
       ]
     }

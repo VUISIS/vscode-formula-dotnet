@@ -3,6 +3,7 @@ import { IKernelSpec, IRunningKernel, KernelProvider } from './kernelProvider';
 import { DisplayData, executeRequest, inputReply, StreamOutput, UpdateDisplayData } from './messaging';
 import * as path from 'path';
 import { Buffer } from 'buffer';
+import { networkInterfaces } from 'os';
 
 export class FormulaNotebookKernel {
 
@@ -11,9 +12,12 @@ export class FormulaNotebookKernel {
 	private readonly _kernelSpec: IKernelSpec;
 	private _runningKernel: IRunningKernel;
 	private _execution: vscode.NotebookCellExecution;
-	private _solutions: Object = new Object();
+	private _solution: Object = new Object();
 	private _loaded4ML: vscode.Uri = null;
 	private _4mlText: string = null;
+	private _extractOut: string[];
+	private _collect: Boolean = true;
+	private _save: Boolean = false;
 
 	constructor(
 		kernelProvider: KernelProvider,
@@ -32,26 +36,15 @@ export class FormulaNotebookKernel {
 
 	public async saveCallback()
 	{
-		var val = await vscode.window.showInputBox({ignoreFocusOut: true,
-			password: false,
-			placeHolder: "Solution ID",
-			prompt: "Solution ID",
-			title: "Solution ID",
-			value: "0",
-			valueSelection: undefined});
-		
-		if(val in this._solutions)
+		if(this._save)
 		{
-			await this._runningKernel.connection.sendRaw(executeRequest("extract " + val + " 1 save_solution"));
-			return;
+			await this._runningKernel.connection.sendRaw(executeRequest("extract 0 1 save_solution"));
 		}
-		await vscode.window.showErrorMessage("Solution ID not in task list.");
-		return;
 	}
 
-	public async saveSolution(data: string[], id: string)
+	public async saveSolution()
 	{
-		if(this._4mlText.includes("model " + this._solutions[id]["PartialModel"] + this._solutions[id]["SolNum"] + " of " + this._solutions[id]["Domain"]))
+		if(this._4mlText.includes("model " + this._solution["PartialModel"] + this._solution["SolNum"] + " of " + this._solution["Domain"]))
 		{
 			await vscode.window.showErrorMessage("Solution already saved to " + this._loaded4ML.fsPath + ".");
 			return;
@@ -61,10 +54,11 @@ export class FormulaNotebookKernel {
 		{
 			var txt = Buffer.from(this._4mlText).toString('utf-8');
 			txt += "\n";
-			txt += "model " + this._solutions[id]["PartialModel"] + this._solutions[id]["SolNum"] + " of " + this._solutions[id]["Domain"];
+			txt += "\n";
+			txt += "model " + this._solution["PartialModel"] + this._solution["SolNum"] + " of " + this._solution["Domain"];
 			txt += " {";
 			txt += "\n";
-			data.forEach(element => {
+			this._extractOut.forEach(element => {
 				txt += "\t" + element;
 				txt += "\n";
 			});
@@ -72,25 +66,26 @@ export class FormulaNotebookKernel {
 			await vscode.workspace.fs.writeFile(this._loaded4ML, Buffer.from(txt));
 			vscode.window.showInformationMessage("Solution successfully saved to " + this._loaded4ML.fsPath + ".");
 			this._4mlText = (await vscode.workspace.openTextDocument(this._loaded4ML)).getText();
+			this._save = false;
+			await this._runningKernel.connection.sendRaw(executeRequest("tunload *"));
+			await this._runningKernel.connection.sendRaw(executeRequest("reload"));
 			return;
 		}
 		await vscode.window.showErrorMessage("No 4ml file loaded.");
 		return;
 	}
 
-	private storeSolution(cmd: string, out:string, metaCode: string)
+	private async storeSolution(cmd: string, metaCode: string)
 	{
 		const matches = /solve\s([\w\d]+)\s(\d+)/.exec((metaCode));
 		var obj = new Object();
 		obj["PartialModel"] = matches[1];
 		obj["SolNum"] = matches[2];
-		const re = new RegExp('partial\smodel\s' + matches[1] + '\sof\s([\w\d]+)');
+		const re = new RegExp('partial model ' + matches[1] + ' of ([\\w\\d]+)');
 		const m4ml = re.exec(this._4mlText);
 		obj["Domain"] = m4ml[1];
 
-		var m = /Started\solve\stask\swith\sId\s(\d+)/.exec(out);
-		obj["ID"] = m[1];
-		this._solutions[m[1]] = obj;
+		this._solution = obj;
 	}
 
 	private async launchKernelAndConnectSubject()
@@ -110,44 +105,65 @@ export class FormulaNotebookKernel {
 				else if(msg.header.msg_type === 'display_data')
 				{
 					var cont = (msg as DisplayData).content;
-					var metaCode = cont.metadata["Code"];
-					var cmd = (metaCode as string).split(" ")[0];
+					var metaCode = cont.metadata.code;
+					var cmd = (metaCode as string).split(" ");
 					var out = cont.data['text/plain'];
 					if(cmd[0] === "solve" || cmd[0] === "sl")
 					{
-						this.storeSolution(cmd[0], out, (metaCode as string));
+						this.storeSolution(cmd[0], (metaCode as string));
+						this._save = true;
 					}
 					else if(cmd[0] === "extract" && cmd[3] === "save_solution")
 					{
-						this.saveSolution(out.split("\n"), cmd[1]);
+						this._extractOut = [];
+						this._collect = true;
 					}
 
-					this._execution.appendOutput([
-						new vscode.NotebookCellOutput([
-							vscode.NotebookCellOutputItem.text(out)
-						])
-					]);
+					if(cmd[0] !== "tunload")
+					{
+						this._execution.appendOutput([
+							new vscode.NotebookCellOutput([
+								vscode.NotebookCellOutputItem.text(out)
+							])
+						]);
+					}
 				}
 				else if(msg.header.msg_type === 'update_display_data')
 				{
 					var cont = (msg as DisplayData).content;
-					var metaCode = cont.metadata["Code"];
-					var cmd = (metaCode as string).split(" ")[0];
+					var metaCode = cont.metadata.code;
+					var cmd = (metaCode as string).split(" ");
 					var out = cont.data['text/plain'];
-					if(cmd[0] === "solve" || cmd[0] === "sl")
+					var outPut = out.split("\n");
+
+					if(cmd[0] === "extract" && cmd[3] === "save_solution")
 					{
-						this.storeSolution(cmd[0], out, (metaCode as string));
-					}
-					else if(cmd[0] === "extract" && cmd[3] === "save_solution")
-					{
-						this.saveSolution(out.split("\n"), cmd[1]);
+						outPut.forEach(element => {
+							if(element.startsWith("INFO") && this._collect)
+							{
+								if(!element.startsWith("INFO Solution number") && !element.endsWith("s."))
+								{
+									var temp = element.replace("INFO ", "");
+									temp += '.';
+									this._extractOut.push(temp);
+								}
+								else if(element.endsWith("s."))
+								{
+									this._collect = false;
+									this.saveSolution();
+								}
+							}
+						});
 					}
 
-					this._execution.replaceOutput([
-						new vscode.NotebookCellOutput([
-							vscode.NotebookCellOutputItem.text(out)
-						])
-					]);
+					if(cmd[0] !== "tunload")
+					{
+						this._execution.replaceOutput([
+							new vscode.NotebookCellOutput([
+								vscode.NotebookCellOutputItem.text(out)
+							])
+						]);
+					}
 				}
 				else if(msg.header.msg_type === 'input_request')
 				{
