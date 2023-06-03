@@ -143,23 +143,26 @@ export class FormulaNotebookKernel {
 					filePath = cmd.replace("l ", "");
 				}
 
-				if(process.platform === "win32")
-				{
-					filePath = "file:///" + filePath;
-				}
-
-				var folder = path.dirname(cell.notebook.uri.path);
+				var folder = path.dirname(cell.notebook.uri.fsPath);
 
 				cmd = cmd + " " + folder;
 
 				var uri : vscode.Uri | undefined = undefined;
 				if(path.isAbsolute(filePath))
 				{
+					if(process.platform === "win32")
+					{
+						filePath = "file:///" + filePath;
+					}
 					uri = vscode.Uri.parse(filePath);
 				}
 				else
 				{
 					filePath = path.join(folder, filePath);
+					if(process.platform === "win32")
+					{
+						filePath = "file:///" + filePath;
+					}
 					uri = vscode.Uri.parse(filePath);
 				}
 
